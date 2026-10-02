@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>晴光苑 3D 賞屋</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&display=swap">
+<link rel="stylesheet" href="css/style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="stage">
+  <canvas id="scene" aria-label="3D 建案場景"></canvas>
+  <div id="labels"></div>
+  <div class="tooltip" id="tooltip" hidden></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="mark" aria-hidden="true">晴</span>
+      <div class="brand-text">
+        <strong id="projectName">晴光苑</strong>
+        <small>SOLARIS RESIDENCE・3D 線上賞屋</small>
+      </div>
+    </div>
+    <nav class="modes" role="tablist" aria-label="檢視模式">
+      <button type="button" role="tab" data-mode="exterior" aria-selected="true">建案外觀</button>
+      <button type="button" role="tab" data-mode="dollhouse" aria-selected="false">3D 格局</button>
+      <button type="button" role="tab" data-mode="walk" aria-selected="false">室內漫遊</button>
+      <button type="button" role="tab" data-mode="plan" aria-selected="false">平面圖</button>
+    </nav>
+    <span class="demo-tag">示範建案</span>
+  </header>
+
+  <aside class="panel" id="panel" aria-label="戶別資訊">
+    <button type="button" class="panel-handle" id="panelToggle" aria-expanded="false" aria-controls="panelBody">
+      <span class="handle-bar" aria-hidden="true"></span>
+      <span class="handle-summary"><b id="unitCode">12F-01</b><span id="miniPrice">— 萬</span></span>
+    </button>
+    <div class="panel-body" id="panelBody">
+      <section class="unit-head">
+        <div class="eyebrow">目前檢視・<span id="unitCodeHead">12F-01</span></div>
+        <div class="unit-title">
+          <h1 id="unitType">A 戶型</h1>
+          <span class="status" id="unitStatus" data-status="available">可銷售</span>
+        </div>
+        <p class="tagline" id="unitTagline"></p>
+        <div class="picker">
+          <label for="floorSelect">樓層</label>
+          <select id="floorSelect"></select>
+          <div class="col-picker" id="colPicker" role="group" aria-label="戶號">
+            <button type="button" data-col="0"><span>01</span><small>A</small></button>
+            <button type="button" data-col="1"><span>02</span><small>B</small></button>
+            <button type="button" data-col="2"><span>03</span><small>B</small></button>
+            <button type="button" data-col="3"><span>04</span><small>A</small></button>
+          </div>
+        </div>
+      </section>
+
+      <section class="price">
+        <dl class="areas">
+          <div><dt>主建物</dt><dd><span id="pMain">0</span> 坪</dd></div>
+          <div><dt>陽台</dt><dd><span id="pBalcony">0</span> 坪</dd></div>
+          <div><dt>公設（32%）</dt><dd><span id="pPublic">0</span> 坪</dd></div>
+          <div class="sum"><dt>權狀總坪數</dt><dd><span id="pTotal">0</span> 坪</dd></div>
+        </dl>
+        <div class="total">
+          <div>
+            <div class="eyebrow">參考總價</div>
+            <div class="big"><span id="pPrice">0</span><small>萬</small></div>
+          </div>
+          <div class="perping"><span id="pPerPing">0</span> 萬／坪</div>
+        </div>
+      </section>
+
+      <section>
+        <h2>空間配置</h2>
+        <ul class="rooms" id="roomList"></ul>
+      </section>
+
+      <section>
+        <h2>裝潢風格</h2>
+        <div class="swatches" id="styleSwatches"></div>
+      </section>
+
+      <section class="settings">
+        <h2>顯示設定</h2>
+        <label class="row" for="timeRange"><span>日照時間</span><output id="timeValue">上午 10:00</output></label>
+        <input type="range" id="timeRange" min="6" max="22" step="0.25" value="10">
+        <label class="row interior-only" for="wallRange"><span>牆面高度</span><output id="wallValue">2.2 m</output></label>
+        <input class="interior-only" type="range" id="wallRange" min="0.8" max="2.8" step="0.1" value="2.2">
+        <label class="switch"><input type="checkbox" id="toggleFurniture" checked><span>顯示家具</span></label>
+        <label class="switch"><input type="checkbox" id="toggleLabels" checked><span>房間標籤</span></label>
+      </section>
+
+      <button type="button" class="cta" id="bookBtn">預約賞屋</button>
+      <p class="fineprint">本頁為展示用虛構建案，價格與格局僅供參考。</p>
+    </div>
+  </aside>
+
+  <div class="legend" aria-label="銷控圖例">
+    <span><i data-status="available"></i>可銷售</span>
+    <span><i data-status="reserved"></i>已預約</span>
+    <span><i data-status="sold"></i>已售出</span>
+  </div>
+  <button type="button" class="enter-cta" id="enterBtn">進入 3D 看屋</button>
+
+  <div class="minimap-wrap">
+    <canvas id="minimap" aria-label="平面小地圖，點選可前往房間"></canvas>
+    <span class="north" aria-hidden="true">N ↑</span>
+  </div>
+  <div class="hint" id="hint"></div>
+  <div class="toast" id="toast" role="status" hidden></div>
+  <div class="loading" id="loading"><span></span>載入建案模型中…</div>
+</div>
+
+<dialog id="bookDialog">
+  <form id="bookForm">
+    <h2>預約賞屋</h2>
+    <p class="dlg-unit">戶別：<b id="bookUnit"></b></p>
+    <label for="bookName">姓名</label>
+    <input id="bookName" required autocomplete="name" placeholder="王小明">
+    <label for="bookPhone">聯絡電話</label>
+    <input id="bookPhone" required inputmode="tel" placeholder="0912-345-678">
+    <label for="bookDate">希望日期</label>
+    <input id="bookDate" type="date" required>
+    <p class="fineprint">展示用表單，送出後不會傳送任何資料。</p>
+    <div class="dlg-actions">
+      <button type="button" id="bookCancel" class="ghost">取消</button>
+      <button type="submit" class="cta">送出預約</button>
+    </div>
+  </form>
+</dialog>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
